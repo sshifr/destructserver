@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./destruct-frontend
+      dockerfile: Dockerfile
+    container_name: destruct-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      # Монтируем исходный код для hot reload
+      - ./destruct-frontend/src:/app/src
+      - ./destruct-frontend/public:/app/public
+      # Исключаем node_modules из монтирования
+      - /app/node_modules
+      - /app/build
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - HOST=0.0.0.0
+      - REACT_APP_API_URL=http://localhost/api
+    networks:
+      - destruct-network
+
+  backend:
+    build:
+      context: ./destruct-server
+      dockerfile: Dockerfile
+    container_name: destruct-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      # Монтируем исходный код для hot reload
+      - ./destruct-server:/app
+      # Исключаем node_modules из монтирования
+      - /app/node_modules
+      # Монтируем директории для работы приложения
+      - ./destruct-server/uploads:/app/uploads
+      - ./destruct-server/runs:/app/runs
+    environment:
+      - PORT=3001
+      - HOST=0.0.0.0
+      - NODE_ENV=development
+    networks:
+      - destruct-network
+    # Для доступа к физической камере на Linux-хосте (например /dev/video0)
+    # Работает только на Linux; на macOS /dev/video0 недоступен внутри Docker.
+    devices:
+      - "/dev/video0:/dev/video0"
+    privileged: true
+    # Для hot reload Node.js можно использовать nodemon, но пока оставим стандартный запуск
+
+  nginx:
+    image: nginx:latest
+    container_name: destruct-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - destruct-network
+
+networks:
+  destruct-network:
+    driver: bridge
