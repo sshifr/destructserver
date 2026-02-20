@@ -68,7 +68,7 @@ class IPCameraAnalyzer:
         if self.motion_detection:
             self.motion_detector = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=40)
             self.prev_frame = None
-            self.motion_threshold = 500  # Порог для определения движения
+            self.motion_threshold = 300  # Снижен порог для более чувствительного детектирования движения
 
     def start(self):
         print(safe_json_dumps({"status": "info", "message": f"Попытка подключиться к RTSP потоку: {self.rtsp_url}"}))
@@ -136,11 +136,19 @@ class IPCameraAnalyzer:
         contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Проверяем, есть ли значительное движение
+        # Снижаем порог для более чувствительного детектирования
         motion_detected = False
+        total_motion_area = 0
         for contour in contours:
-            if cv2.contourArea(contour) > self.motion_threshold:
+            area = cv2.contourArea(contour)
+            total_motion_area += area
+            if area > self.motion_threshold:
                 motion_detected = True
                 break
+        
+        # Альтернативный способ: если суммарная площадь движения достаточно большая
+        if not motion_detected and total_motion_area > self.motion_threshold * 0.7:
+            motion_detected = True
 
         # Обновляем предыдущий кадр
         self.prev_frame = gray
@@ -227,12 +235,31 @@ class IPCameraAnalyzer:
                     motion_detected = self._detect_motion(frame)
                     is_night = self._is_night_mode(frame)
 
-                    # Логируем каждые 30 кадров
+                    # Отправляем информацию о движении и сцене в реальном времени
+                    if motion_detected:
+                        print(safe_json_dumps({
+                            "status": "info",
+                            "message": "Обнаружено движение",
+                            "motion": True,
+                            "scene_type": "ночная" if is_night else "дневная"
+                        }))
+                    else:
+                        # Логируем отсутствие движения реже (каждые 60 кадров)
+                        if frame_count % 60 == 0:
+                            print(safe_json_dumps({
+                                "status": "info",
+                                "message": "Движение не обнаружено",
+                                "motion": False,
+                                "scene_type": "ночная" if is_night else "дневная"
+                            }))
+
+                    # Логируем тип сцены каждые 30 кадров
                     if frame_count % 30 == 0:
                         scene_type = "ночная" if is_night else "дневная"
                         print(safe_json_dumps({
                             "status": "info",
-                            "message": f"Текущая сцена: {scene_type}"
+                            "message": f"Текущая сцена: {scene_type}",
+                            "scene_type": scene_type
                         }))
 
                     # Запускаем модель
@@ -304,10 +331,13 @@ class IPCameraAnalyzer:
                                     }))
                                     continue
                             
-                            # Отправляем результаты
+                            # Отправляем результаты с информацией о движении и сцене
                             print(safe_json_dumps({
                                 "status": "info",
-                                "message": f"Обнаружено {len(detections)} объектов: {', '.join([d['class'] for d in detections])}"
+                                "message": f"Обнаружено {len(detections)} объектов: {', '.join([d['class'] for d in detections])}",
+                                "detections": [d['class'] for d in detections],
+                                "motion": motion_detected,
+                                "scene_type": "ночная" if is_night else "дневная"
                             }))
                             
                             # Отправляем кадр с боксами в base64

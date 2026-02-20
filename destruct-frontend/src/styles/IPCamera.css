@@ -142,6 +142,90 @@
   transform: none;
 }
 
+.ip-camera-status-panel {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ip-camera-status-panel h3 {
+  margin: 0 0 15px 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ip-camera-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.ip-camera-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ip-camera-status-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ip-camera-status-value {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.ip-camera-status-empty {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.ip-camera-detected-objects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ip-camera-object-tag {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  font-weight: 500;
+}
+
+.ip-camera-motion-yes {
+  color: #ff9800;
+}
+
+.ip-camera-motion-no {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ip-camera-scene-day {
+  color: #2196f3;
+}
+
+.ip-camera-scene-night {
+  color: #9c27b0;
+}
+
+.ip-camera-scene-unknown {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
 .ip-camera-logs-container {
   width: 100%;
   background: rgba(0, 0, 0, 0.2);

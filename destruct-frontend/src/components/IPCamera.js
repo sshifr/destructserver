@@ -10,6 +10,11 @@ const IPCamera = () => {
     const [nightMode, setNightMode] = useState(false);
     const canvasRef = useRef(null);
     const logsContainerRef = useRef(null);
+    
+    // Состояние для отображения информации об обнаруженных объектах, движении и сцене
+    const [detectedObjects, setDetectedObjects] = useState([]);
+    const [hasMotion, setHasMotion] = useState(false);
+    const [sceneType, setSceneType] = useState(null); // 'day' | 'night' | null
 
     const models = [
         { id: 'all.pt', name: 'Модель всех объектов' },
@@ -45,6 +50,11 @@ const IPCamera = () => {
         setIsProcessing(true);
         addLog('Запуск анализа...');
         addLog(`Параметры: ночной режим = ${nightMode}, датчик движения = ${motionDetection}`);
+        
+        // Сбрасываем состояние при новом запуске
+        setDetectedObjects([]);
+        setHasMotion(false);
+        setSceneType(null);
 
         try {
             const params = new URLSearchParams({
@@ -99,9 +109,61 @@ const IPCamera = () => {
                             switch (data.status) {
                                 case 'info':
                                     addLog(data.message);
+                                    // Используем структурированные данные из JSON, если они есть
+                                    if (data.detections && Array.isArray(data.detections)) {
+                                        setDetectedObjects(data.detections);
+                                    } else {
+                                        // Fallback: парсим из текста
+                                        const msg = data.message || '';
+                                        if (msg.includes('Обнаружено') && msg.includes('объект')) {
+                                            const match = msg.match(/Обнаружено (\d+) объектов?: (.+)/);
+                                            if (match) {
+                                                const objects = match[2].split(', ').map(obj => obj.trim());
+                                                setDetectedObjects(objects);
+                                            }
+                                        } else if (msg.includes('Объекты не обнаружены')) {
+                                            setDetectedObjects([]);
+                                        }
+                                    }
+                                    
+                                    // Движение из структурированных данных
+                                    if (typeof data.motion === 'boolean') {
+                                        setHasMotion(data.motion);
+                                    } else {
+                                        // Fallback: парсим из текста
+                                        const msg = data.message || '';
+                                        if (msg.includes('Обнаружено движение') || msg.includes('движение в ночном режиме')) {
+                                            setHasMotion(true);
+                                        } else if (msg.includes('Движение не обнаружено')) {
+                                            setHasMotion(false);
+                                        }
+                                    }
+                                    
+                                    // Тип сцены из структурированных данных
+                                    if (data.scene_type) {
+                                        setSceneType(data.scene_type === 'ночная' ? 'night' : 'day');
+                                    } else {
+                                        // Fallback: парсим из текста
+                                        const msg = data.message || '';
+                                        if (msg.includes('Текущая сцена:')) {
+                                            if (msg.includes('ночная')) {
+                                                setSceneType('night');
+                                            } else if (msg.includes('дневная')) {
+                                                setSceneType('day');
+                                            }
+                                        } else if (msg.includes('ночная') || msg.includes('ночной')) {
+                                            setSceneType('night');
+                                        } else if (msg.includes('дневная') || msg.includes('дневной')) {
+                                            setSceneType('day');
+                                        }
+                                    }
                                     break;
                                 case 'warning':
                                     addLog(data.message, 'warning');
+                                    // Проверяем движение в предупреждениях
+                                    if (data.message.includes('движение')) {
+                                        setHasMotion(true);
+                                    }
                                     break;
                                 case 'error':
                                     addLog(data.message, 'error');
@@ -236,6 +298,43 @@ const IPCamera = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Секция с информацией об обнаруженных объектах, движении и сцене */}
+            {isProcessing && (
+                <div className="ip-camera-status-panel">
+                    <h3>Текущий статус:</h3>
+                    <div className="ip-camera-status-grid">
+                        <div className="ip-camera-status-item">
+                            <div className="ip-camera-status-label">Обнаружено объектов:</div>
+                            <div className="ip-camera-status-value">
+                                {detectedObjects.length > 0 ? (
+                                    <div className="ip-camera-detected-objects">
+                                        {detectedObjects.map((obj, idx) => (
+                                            <span key={idx} className="ip-camera-object-tag">{obj}</span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="ip-camera-status-empty">Нет</span>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="ip-camera-status-item">
+                            <div className="ip-camera-status-label">Движение:</div>
+                            <div className={`ip-camera-status-value ip-camera-motion-${hasMotion ? 'yes' : 'no'}`}>
+                                {hasMotion ? 'Обнаружено' : 'Нет'}
+                            </div>
+                        </div>
+                        
+                        <div className="ip-camera-status-item">
+                            <div className="ip-camera-status-label">Тип сцены:</div>
+                            <div className={`ip-camera-status-value ip-camera-scene-${sceneType || 'unknown'}`}>
+                                {sceneType === 'night' ? 'Ночная' : sceneType === 'day' ? 'Дневная' : 'Определяется...'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="ip-camera-logs-container" ref={logsContainerRef}>
                 <h3>Логи анализа:</h3>

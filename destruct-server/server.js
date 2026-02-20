@@ -78,7 +78,19 @@ wss.on('connection', (ws) => {
       ws.send(JSON.stringify({ status: 'error', message: data.toString() }));
     });
 
+    py.stdin.on('error', (err) => {
+      // Игнорируем EPIPE - это нормально когда процесс завершается
+      if (err.code !== 'EPIPE') {
+        ws.send(JSON.stringify({ status: 'error', message: `Stdin error: ${err.message}` }));
+      }
+    });
+
     py.on('close', () => {
+      py = null;
+    });
+
+    py.on('error', (err) => {
+      ws.send(JSON.stringify({ status: 'error', message: `Python process error: ${err.message}` }));
       py = null;
     });
   };
@@ -109,7 +121,17 @@ wss.on('connection', (ws) => {
         if (comma !== -1) image = image.slice(comma + 1);
       }
 
-      py.stdin.write(JSON.stringify({ image }) + '\n');
+      try {
+        py.stdin.write(JSON.stringify({ image }) + '\n');
+      } catch (err) {
+        // EPIPE возникает когда python процесс уже закрыт
+        if (err.code === 'EPIPE') {
+          py = null;
+          ws.send(JSON.stringify({ status: 'error', message: 'Python процесс завершился' }));
+        } else {
+          ws.send(JSON.stringify({ status: 'error', message: `Ошибка записи в stdin: ${err.message}` }));
+        }
+      }
       return;
     }
 
@@ -550,7 +572,7 @@ app.get('/stop-camera-analysis', (req, res) => {
 });
 
 // Обработчик запуска анализа IP-камеры
-app.get('/api/start-ip-camera', async (req, res) => {
+app.get('/start-ip-camera', async (req, res) => {
   const model = req.query.model;
   const rtspUrl = req.query.rtspUrl;
   const motionDetection = req.query.motionDetection === 'true';
@@ -701,7 +723,7 @@ app.get('/api/start-ip-camera', async (req, res) => {
 });
 
 // Обработчик остановки анализа IP-камеры
-app.get('/api/stop-ip-camera', (req, res) => {
+app.get('/stop-ip-camera', (req, res) => {
   if (ipCameraProcess) {
     ipCameraProcess.kill('SIGTERM');
     ipCameraProcess = null;
