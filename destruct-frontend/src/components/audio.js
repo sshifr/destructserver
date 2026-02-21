@@ -240,22 +240,25 @@ function Audio() {
         )}
       </div>
 
-      {logs.length > 0 && (
+      {(logs.length > 0 || isProcessing) && (
         <div className="logs-container" ref={logsContainerRef}>
           <h3>Результаты анализа:</h3>
           <div className="logs">
             {logs.map((log, index) => {
               // Определяем цветовую схему для негативных/позитивных результатов
-              let borderColor = '#e0e0e0';
-              let backgroundColor = '#fff';
+              let borderColor = 'rgba(255, 255, 255, 0.25)';
+              let backgroundColor = 'rgba(0, 0, 0, 0.25)';
               let isNegative = false;
+              let textColor = '#ffffff';
               if (log.type === 'emotion' || log.message.match(/(агресс|злость|депресс|террор|ненавист|нацизм|негатив|недобр|недруже|недоволь|грусть|страх|нцензур|оскорб|угроза|разжигание|экстремист|заложник|расстрел|обезглав|джихад|публичные призывы|статья 280|статья 206|статья 20.1)/i)) {
-                borderColor = 'rgba(255, 0, 0, 0.5)';
-                backgroundColor = 'rgba(255, 0, 0, 0.07)';
+                borderColor = 'rgba(255, 80, 80, 0.6)';
+                backgroundColor = 'rgba(120, 20, 20, 0.85)';
+                textColor = '#ffffff';
                 isNegative = true;
               } else if (log.message.match(/(нейтраль|позитив|одобр|счастье|лучш|хорош|отсутствие деструктивного|не принимать какие-либо действия)/i)) {
                 borderColor = 'rgba(0, 200, 83, 0.5)';
-                backgroundColor = 'rgba(0, 200, 83, 0.07)';
+                backgroundColor = 'rgba(20, 80, 40, 0.75)';
+                textColor = '#a8e6a0';
               }
               return (
                 <div
@@ -269,7 +272,7 @@ function Audio() {
                     marginBottom: '10px',
                     whiteSpace: 'pre-line',
                     fontWeight: isNegative ? 'bold' : 'normal',
-                    color: '#000000'
+                    color: textColor
                   }}
                 >
                   {log.message}

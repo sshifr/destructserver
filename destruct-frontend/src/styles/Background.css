@@ -2,11 +2,25 @@ body {
     margin: 0;
     height: auto;
     font-weight: 100;
-    background: linear-gradient(135deg, #141e30 0%, #243b55 100%);
+    background: #0a0a0f;
     -webkit-animation: fadeIn 1 1s ease-out;
     -moz-animation: fadeIn 1 1s ease-out;
     -o-animation: fadeIn 1 1s ease-out;
     animation: fadeIn 1 1s ease-out;
+}
+
+.background-wrap {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.background-wrap .faulty-terminal-container {
+    width: 100%;
+    height: 100%;
 }
 
 .light {

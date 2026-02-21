@@ -1,18 +1,22 @@
+import React, { Suspense, lazy } from "react";
 import "./App.css";
 import Background from "./components/animation";
-import MediaUpload from "./components/MediaUpload";
-import Audio from "./components/audio";
-import Camera from "./components/camera";
-import IPCamera from "./components/IPCamera";
+
+const MediaUpload = lazy(() => import("./components/MediaUpload"));
+const Audio = lazy(() => import("./components/audio"));
+const Camera = lazy(() => import("./components/camera"));
+const IPCamera = lazy(() => import("./components/IPCamera"));
 
 function App() {
   return (
     <div className="App">
       <Background />
-      <MediaUpload />
-      <Audio />
-      <Camera />
-      <IPCamera />
+      <Suspense fallback={<div className="section-loading">Загрузка…</div>}>
+        <MediaUpload />
+        <Audio />
+        <Camera />
+        <IPCamera />
+      </Suspense>
     </div>
   );
 }

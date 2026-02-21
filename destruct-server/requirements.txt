@@ -1,7 +1,7 @@
 ultralytics==8.3.135
 numpy==1.24.3
-torch==2.7.0
-torchvision==0.22.0
+torch==2.3.1
+torchvision==0.18.1
 opencv-python==4.8.1.78
 pillow==9.5.0
 pyyaml==6.0.1

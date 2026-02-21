@@ -294,3 +294,109 @@
 .ip-camera-logs::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
 }
+
+/* Планшеты */
+@media (max-width: 768px) {
+  .ip-camera-container {
+    padding: 16px;
+    gap: 16px;
+  }
+  .ip-camera-controls {
+    padding: 16px;
+    gap: 12px;
+  }
+  .ip-camera-mode-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ip-camera-buttons {
+    flex-wrap: wrap;
+  }
+  .ip-camera-start-button,
+  .ip-camera-stop-button {
+    min-width: 120px;
+  }
+  .ip-camera-status-panel {
+    padding: 16px;
+  }
+  .ip-camera-status-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .ip-camera-status-panel h3 {
+    font-size: 16px;
+  }
+}
+
+/* Телефоны */
+@media (max-width: 480px) {
+  .ip-camera-container {
+    padding: 10px;
+    gap: 10px;
+    max-width: 100%;
+  }
+  .ip-camera-controls {
+    padding: 10px;
+    gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .ip-camera-model-select,
+  .ip-camera-rtsp-input {
+    grid-column: span 1;
+  }
+  .ip-camera-rtsp-input input {
+    min-width: 0;
+  }
+  .ip-camera-model-select label,
+  .ip-camera-rtsp-input label {
+    font-size: 12px;
+  }
+  .ip-camera-model-select select,
+  .ip-camera-rtsp-input input {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  .ip-camera-mode-controls {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+  }
+  .ip-camera-mode-checkbox {
+    font-size: 12px;
+  }
+  .ip-camera-buttons {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .ip-camera-start-button,
+  .ip-camera-stop-button {
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 100px;
+    padding: 12px 20px;
+  }
+  .ip-camera-status-panel {
+    padding: 10px;
+  }
+  .ip-camera-status-panel h3 {
+    font-size: 15px;
+  }
+  .ip-camera-status-label {
+    font-size: 12px;
+  }
+  .ip-camera-status-value {
+    font-size: 14px;
+  }
+  .ip-camera-object-tag {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+  .ip-camera-logs-container {
+    padding: 10px;
+  }
+}

@@ -2,14 +2,16 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
+const compression = require('compression');
 const multer = require('multer');
 const { execFile, spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
+app.use(compression());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Создаем HTTP сервер (нужно для WebSocket)
 const httpServer = http.createServer(app);
@@ -152,11 +154,10 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Настраиваем статическую раздачу файлов из папки с результатами
-app.use('/result', express.static(path.join(__dirname, 'runs')));
-
-// Настраиваем статическую раздачу файлов из папки uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Статика с кэшированием (результаты и загрузки редко меняются по одному URL)
+const staticOptions = { maxAge: '1h', etag: true };
+app.use('/result', express.static(path.join(__dirname, 'runs'), staticOptions));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOptions));
 
 // Настраиваем multer для загрузки файлов
 const storage = multer.diskStorage({

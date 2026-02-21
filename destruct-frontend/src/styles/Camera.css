@@ -21,6 +21,21 @@ body {
   gap: 20px;
 }
 
+.camera-insecure-warning {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(220, 53, 69, 0.25);
+  border: 1px solid rgba(220, 53, 69, 0.6);
+  border-radius: 8px;
+  color: #ffb3b3;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.camera-insecure-warning strong {
+  color: #ffcccc;
+}
+
 .camera-controls {
   width: 100%;
   display: flex;
@@ -278,4 +293,101 @@ body {
 .buttonCamera:active {
   background-color: #737373;
   transform: scale(1.06);
+}
+
+/* Планшеты */
+@media (max-width: 768px) {
+  .camera-component {
+    margin: 12px auto;
+    padding: 16px;
+    gap: 16px;
+  }
+  .camera-controls {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .camera-select select,
+  .model-select select {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .buttons-container {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .button {
+    padding: 12px 20px;
+    font-size: 1.05em;
+    max-width: none;
+  }
+  .logs-container {
+    max-height: 220px;
+    padding: 12px;
+  }
+  .logs {
+    font-size: 13px;
+  }
+  .camera-insecure-warning {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
+/* Телефоны */
+@media (max-width: 480px) {
+  .camera-component {
+    margin: 6px auto;
+    padding: 10px;
+    gap: 10px;
+    max-width: 100%;
+  }
+  .camera-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .camera-select,
+  .model-select {
+    min-width: 0;
+  }
+  .camera-select label,
+  .model-select label {
+    font-size: 12px;
+  }
+  .camera-select select,
+  .model-select select {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  .buttons-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .button {
+    width: auto;
+    flex: 0 1 auto;
+    padding: 12px 20px;
+    font-size: 1em;
+  }
+  .video-container {
+    border-radius: 6px;
+  }
+  .logs-container {
+    max-height: 180px;
+    padding: 8px;
+  }
+  .logs-container h3 {
+    font-size: 14px;
+  }
+  .logs {
+    font-size: 12px;
+  }
+  .camera-insecure-warning {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
 }

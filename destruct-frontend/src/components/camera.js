@@ -22,8 +22,25 @@ function Camera() {
     { id: 'violence.pt', name: 'Модель насилия' }
   ];
 
+  // Проверка: доступна ли камера в этом контексте (HTTPS или localhost обязательны)
+  const isSecureContext = typeof window !== 'undefined' && (
+    window.isSecureContext ||
+    window.location.protocol === 'https:' ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  );
+  const hasMediaDevices = typeof navigator !== 'undefined' && navigator.mediaDevices != null;
+
   // Получение списка доступных камер
   useEffect(() => {
+    if (!isSecureContext || !hasMediaDevices) {
+      setLogs(prev => [...prev, {
+        message: 'Доступ к камере с этого устройства недоступен: браузер разрешает камеру только по HTTPS или с localhost. Откройте сайт по https://... или с того же компьютера по http://localhost',
+        type: 'error'
+      }]);
+      return;
+    }
+
     async function getCameras() {
       console.log('Getting list of cameras...');
       try {
@@ -66,7 +83,7 @@ function Camera() {
       }
     }
     getCameras();
-  }, []);
+  }, [isSecureContext, hasMediaDevices]);
 
   // Функция для запуска видеопотока
   const startVideoStream = async (deviceId) => {
@@ -241,6 +258,11 @@ function Camera() {
 
   return (
     <div className="camera-component">
+      {(!isSecureContext || !hasMediaDevices) && (
+        <div className="camera-insecure-warning" role="alert">
+          Доступ к камере с этого устройства недоступен: браузер разрешает камеру только по <strong>HTTPS</strong> или с <strong>localhost</strong>. Откройте сайт по https://… или с того же компьютера по http://localhost.
+        </div>
+      )}
       <div className="camera-controls">
         <div className="camera-select">
           <label htmlFor="cameraSelect">Выберите камеру:</label>
