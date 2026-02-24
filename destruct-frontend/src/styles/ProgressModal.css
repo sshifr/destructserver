@@ -4,13 +4,14 @@
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 10000;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
   animation: fadeIn 0.3s ease;
+  overflow: hidden; /* убираем любые скроллы на оверлее */
 }
 
 @keyframes fadeIn {
@@ -23,7 +24,11 @@
 }
 
 .progress-modal-content {
-  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.98) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 30, 0.95) 0%,
+    rgba(20, 20, 20, 0.98) 100%
+  );
   backdrop-filter: blur(20px);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -34,6 +39,12 @@
   flex-direction: column;
   animation: slideUp 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  overflow: hidden; /* чтобы не появлялся нижний (горизонтальный) скролл */
+}
+
+.progress-modal-content * {
+  box-sizing: border-box;
 }
 
 @keyframes slideUp {
@@ -86,17 +97,25 @@
 .progress-modal-body {
   padding: 30px;
   overflow-y: auto;
+  overflow-x: hidden; /* убираем нижний скролл */
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0; /* важно для flex + длинных строк, чтобы не раздувало ширину */
+}
+
+.progress-modal-body > * {
+  min-width: 0;
 }
 
 .progress-modal-preview {
   width: 100%;
   aspect-ratio: 16 / 9;
+  /* важно: в flex-контейнере превью может "схлопываться", поэтому запрещаем shrink */
+  flex: 0 0 auto;
   min-height: 260px;
-  max-height: 460px;
+  max-height: min(460px, 46vh); /* как раньше, но не выше окна */
   border-radius: 12px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
@@ -160,7 +179,7 @@
 }
 
 .progress-bar-fill::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -226,6 +245,7 @@
   max-height: 320px;
   min-height: 220px;
   overflow-y: auto;
+  overflow-x: hidden; /* убираем нижний скролл от длинных строк */
 }
 
 .progress-modal-logs h3 {
@@ -246,6 +266,8 @@
   font-size: 14px;
   line-height: 1.4;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: #fff !important;
 }
 

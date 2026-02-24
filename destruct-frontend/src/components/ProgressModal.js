@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/ProgressModal.css';
 
 function ProgressModal({
@@ -31,13 +32,22 @@ function ProgressModal({
         return () => document.removeEventListener('keydown', handleEscape);
     }, [isOpen, onClose]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = prevOverflow;
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const progressPercent = totalFrames > 0
         ? Math.round((currentFrame / totalFrames) * 100)
         : progress || 0;
 
-    return (
+    const modal = (
         <div className="progress-modal-overlay" onClick={onClose}>
             <div className="progress-modal-content" onClick={(e) => e.stopPropagation()} ref={modalRef}>
                 <div className="progress-modal-header">
@@ -118,6 +128,9 @@ function ProgressModal({
             </div>
         </div>
     );
+
+    // Portal гарантирует, что модалка будет выше любых stacking-context'ов в приложении
+    return createPortal(modal, document.body);
 }
 
 export default ProgressModal;

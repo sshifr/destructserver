@@ -40,8 +40,14 @@ def ensure_dir(directory):
 
 def process_emotions(frame, detector):
     try:
+        if frame is None:
+            return frame, []
+
+        # MTCNN ожидает RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         # Находим лица на кадре
-        faces = detector.detect_faces(frame)
+        faces = detector.detect_faces(rgb_frame)
         
         emotions_data = []
         for face in faces:
@@ -57,6 +63,10 @@ def process_emotions(frame, detector):
             
             if face_img.size == 0:
                 continue
+
+            # Слишком маленькие лица дают мусорные эмоции
+            if face_img.shape[0] < 20 or face_img.shape[1] < 20:
+                continue
                 
             # Анализируем эмоции
             result = DeepFace.analyze(
@@ -67,8 +77,12 @@ def process_emotions(frame, detector):
             )
             
             # Получаем эмоции
-            emotions = result[0]['emotion']
-            dominant_emotion = result[0]['dominant_emotion']
+            analysis = result[0] if isinstance(result, list) and result else result
+            emotions = analysis.get('emotion', {}) if isinstance(analysis, dict) else {}
+            dominant_emotion = analysis.get('dominant_emotion') if isinstance(analysis, dict) else None
+
+            if not dominant_emotion:
+                continue
             
             # Добавляем информацию о лице и эмоциях
             emotions_data.append({
@@ -140,6 +154,9 @@ def main():
         # Обработка изображения
         print(f"\nОбработка изображения: {args.source}")
         frame = cv2.imread(args.source)
+        if frame is None:
+            print(f"Error: cannot read image: {args.source}", file=sys.stderr)
+            sys.exit(2)
         
         # Обрабатываем эмоции
         processed_frame, emotions_data = process_emotions(frame, detector)
@@ -150,7 +167,8 @@ def main():
         
         # Сохраняем результаты
         if args.save:
-            output_path = os.path.join(output_dir, os.path.basename(args.source))
+            base_name = os.path.splitext(os.path.basename(args.source))[0]
+            output_path = os.path.join(output_dir, f"{base_name}.jpg")
             cv2.imwrite(output_path, processed_frame)
             
             # Сохраняем данные об эмоциях в JSON

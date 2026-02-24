@@ -13,6 +13,13 @@ app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+function resolveLocalPath(p) {
+  if (!p) return p;
+  // На всякий случай: если когда-нибудь начнут передавать URL
+  if (typeof p === 'string' && (p.startsWith('http://') || p.startsWith('https://'))) return p;
+  return path.isAbsolute(p) ? p : path.join(__dirname, p);
+}
+
 // Создаем HTTP сервер (нужно для WebSocket)
 const httpServer = http.createServer(app);
 
@@ -764,10 +771,19 @@ async function runModel(modelName, filePath, sendSSE, options = {}) {
     const scriptPath = path.join(__dirname, 'yolo11', options.quickSearch ? 'quick_detect.py' : 'detect.py');
     const modelPath = path.join(__dirname, 'yolo11', 'models', modelName);
     const projectPath = path.join(__dirname, 'runs', 'detect');
+    const sourcePath = resolveLocalPath(filePath);
 
     // Создаем директорию для результатов, если она не существует
     if (!fs.existsSync(projectPath)) {
       fs.mkdirSync(projectPath, { recursive: true });
+    }
+
+    if (!sourcePath || !fs.existsSync(sourcePath)) {
+      const msg = `Source file not found: ${sourcePath || filePath}`;
+      console.error(msg);
+      sendSSE({ status: 'error', message: msg });
+      reject(new Error(msg));
+      return;
     }
 
     // Используем разные имена директорий для разных моделей
@@ -776,7 +792,7 @@ async function runModel(modelName, filePath, sendSSE, options = {}) {
     const args = [
       scriptPath,
       '--weights', modelPath,
-      '--source', filePath,
+      '--source', sourcePath,
       '--conf', '0.40',
       '--save-txt',
       '--save',
@@ -992,15 +1008,24 @@ async function runEmotionDetection(filePath, sendSSE) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, 'yolo11', 'emotion_detect.py');
     const projectPath = path.join(__dirname, 'runs', 'detect');
+    const sourcePath = resolveLocalPath(filePath);
 
     // Создаем директорию для результатов, если она не существует
     if (!fs.existsSync(projectPath)) {
       fs.mkdirSync(projectPath, { recursive: true });
     }
 
+    if (!sourcePath || !fs.existsSync(sourcePath)) {
+      const msg = `Source file not found: ${sourcePath || filePath}`;
+      console.error(msg);
+      sendSSE({ status: 'error', message: msg });
+      reject(new Error(msg));
+      return;
+    }
+
     const args = [
       scriptPath,
-      '--source', filePath,
+      '--source', sourcePath,
       '--save',
       '--project', projectPath,
       '--name', 'emotions',
@@ -1014,6 +1039,9 @@ async function runEmotionDetection(filePath, sendSSE) {
     let output = '';
     let detectedEmotions = new Set();
     let stdoutBuffer = '';
+    let collectingEmotionBlock = false;
+    let emotionBlockLines = [];
+    let emotionScoreLines = 0;
 
     pythonProcess.stdout.on('data', (data) => {
       const chunk = data.toString();
@@ -1027,6 +1055,30 @@ async function runEmotionDetection(filePath, sendSSE) {
       for (const rawLine of lines) {
         const line = rawLine.trim();
         if (!line) continue;
+
+        // Если собираем эмоции — не спамим по строке, а формируем один блок
+        if (collectingEmotionBlock) {
+          emotionBlockLines.push(line);
+          if (/^- \w+:\s*[\d.]+%$/.test(line)) {
+            emotionScoreLines += 1;
+          }
+
+          // DeepFace по умолчанию печатает 7 эмоций (angry, disgust, fear, happy, sad, surprise, neutral)
+          if (emotionScoreLines >= 7) {
+            const block = emotionBlockLines.join('\n');
+            const domLine = emotionBlockLines.find(l => l.includes('Доминирующая эмоция:'));
+            if (domLine) {
+              const emotion = domLine.split('Доминирующая эмоция:')[1]?.trim();
+              if (emotion) detectedEmotions.add(emotion);
+            }
+
+            sendSSE({ status: 'info', message: block });
+            collectingEmotionBlock = false;
+            emotionBlockLines = [];
+            emotionScoreLines = 0;
+          }
+          continue;
+        }
 
         // 1) JSON-кадры с эмоциями (base64 картинка с боксами)
         if (line.startsWith('{')) {
@@ -1046,18 +1098,16 @@ async function runEmotionDetection(filePath, sendSSE) {
           }
         }
 
-        // 2) Текстовые сообщения об эмоциях (как раньше)
-        if (line.includes('Доминирующая эмоция:')) {
-          const emotion = line.split('Доминирующая эмоция:')[1].trim();
-          detectedEmotions.add(emotion);
-          sendSSE({
-            status: 'info',
-            message: `Доминирующая эмоция: ${emotion}`,
-            emotion: emotion
-          });
-        } else {
-          sendSSE({ status: 'info', message: line });
+        // 2) Текстовые сообщения об эмоциях: собираем блок целиком (для фронта)
+        if (line.includes('Обнаружено лицо с эмоциями:')) {
+          collectingEmotionBlock = true;
+          emotionBlockLines = [line];
+          emotionScoreLines = 0;
+          continue;
         }
+
+        // fallback: обычный текстовый лог
+        sendSSE({ status: 'info', message: line });
       }
     });
 
@@ -1094,10 +1144,11 @@ async function runEmotionDetection(filePath, sendSSE) {
 async function runAudioAnalysis(filePath, sendSSE) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, 'audio', 'Destructive_recognition.py');
+    const sourcePath = resolveLocalPath(filePath);
 
     const args = [
       scriptPath,
-      '--source', filePath
+      '--source', sourcePath
     ];
 
     console.log('Running audio analysis:', 'python3', ...args);

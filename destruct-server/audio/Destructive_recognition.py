@@ -10,6 +10,16 @@ import re
 import argparse
 
 def analyze_audio(filepath: str) -> str:
+    # Стараемся сделать результат максимально стабильным между запусками
+    try:
+        torch.manual_seed(0)
+        np.random.seed(0)
+        # На CPU whisper может давать небольшие расхождения из-за параллелизма
+        torch.set_num_threads(1)
+        torch.set_num_interop_threads(1)
+    except Exception:
+        pass
+
     # Анализ эмоций по аудио
     try:
         # Загрузка аудио
@@ -70,7 +80,17 @@ def analyze_audio(filepath: str) -> str:
 
     # Транскрибация
     model = whisper.load_model("small")
-    result = model.transcribe(filepath)
+    # Фиксируем параметры декодинга, чтобы избежать "плавающих" результатов
+    result = model.transcribe(
+        filepath,
+        task="transcribe",
+        language="ru",
+        fp16=False,
+        temperature=0.0,
+        best_of=1,
+        beam_size=1,
+        condition_on_previous_text=False
+    )
     text = result["text"]
 
     # Нормализация текста для поиска (lowercase, ё->е, без пунктуации)
@@ -79,6 +99,13 @@ def analyze_audio(filepath: str) -> str:
         .replace('ё', 'е')
         .translate(str.maketrans('', '', string.punctuation))
     )
+
+    # Если распознавание речи фактически не сработало — не делаем вывод "ничего нет"
+    if not normalized_text.strip():
+        result = f"Паралингвистический признак аудиосообщения: {emotion_text}\n"
+        result += "Содержательная часть: Не удалось распознать речь\n"
+        result += "Меры, рекомендуемые к принятию: Повторить запись/улучшить качество аудио."
+        return result
 
     # Поиск националистических слов
     nationalist_words_list: List[str] = []
@@ -190,6 +217,16 @@ def analyze_audio(filepath: str) -> str:
         r"\bidi na hui\b",
         r"\bidi nahui\b",
         r"\bidi na huy\b"
+    ]
+    # Частые латинские транслитерации в распознавании
+    sweat_patterns += [
+        r"\bblya\b",
+        r"\bbl(?:ya|ja)\b",
+        r"\bsuka\b",
+        r"\bhui\b",
+        r"\bhuy\b",
+        r"\bpizd\w*\b",
+        r"\bhu[iy]\w*\b"
     ]
     for pattern in sweat_patterns:
         sweat_words_list.extend(re.findall(pattern, normalized_text))
